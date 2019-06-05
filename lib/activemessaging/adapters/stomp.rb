@@ -5,7 +5,7 @@ require 'activemessaging/adapters/base'
 module ActiveMessaging
   module Adapters
     module Stomp
-      
+
       class Connection < ActiveMessaging::Adapters::BaseConnection
         register :stomp
 
@@ -15,24 +15,31 @@ module ActiveMessaging
           @retryMax = cfg[:retryMax] || 0
           @deadLetterQueue = cfg[:deadLetterQueue] || nil
           @deadLetterQueuePrefix = cfg[:deadLetterQueuePrefix] || nil
-        
-          cfg[:login] ||= ""
-          cfg[:passcode] ||= ""
-          cfg[:host] ||= "localhost"
-          cfg[:port] ||= "61613"
-          cfg[:reliable]  = cfg[:reliable].nil? ? TRUE : cfg[:reliable]
-          cfg[:reconnectDelay] ||= 5
+
+          host_cfg = {}
+
+          host_cfg[:login] = cfg[:login] || ""
+          host_cfg[:passcode] = cfg[:passcode] || ""
+          host_cfg[:host] = cfg[:host] || "localhost"
+          host_cfg[:port] = cfg[:port] || "61613"
+          host_cfg[:ssl] = cfg[:ssl] || false
+
+          host_cfg[:port] = host_cfg[:port].to_i
+
+          cfg[:hosts] = [host_cfg]
+          cfg[:reliable] = cfg[:reliable].nil? ? TRUE : cfg[:reliable]
+          cfg[:initial_reconnect_delay] = cfg[:reconnectDelay] || 5
           cfg[:clientId] ||= nil
 
           # hold on to the config
           @configuration = cfg
 
           # create a new stomp connection
-          connect_headers = cfg[:connect_headers] || {}
-          connect_headers['client-id'] = cfg[:clientId] if cfg[:clientId]
-          @stomp_connection = ::Stomp::Connection.new(cfg[:login],cfg[:passcode],cfg[:host],cfg[:port].to_i,cfg[:reliable],cfg[:reconnectDelay], connect_headers)
+          cfg[:connect_headers] ||= {}
+          cfg[:connect_headers]['client-id'] = cfg[:clientId] if cfg[:clientId]
+          @stomp_connection = ::Stomp::Connection.new(cfg)
         end
-        
+
         # Checks if the connection supports dead letter queues
         def supports_dlq?
           !@deadLetterQueue.nil? || !@deadLetterQueuePrefix.nil?
